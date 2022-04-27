@@ -137,3 +137,11 @@ eval_dirs/
 nohup.out
 
 tools/eval_widerface
+
+IMG_FPS_IMAGE/
+inference_data/
+inference_label_data/
+pred_data/
+eval_tools/
+weights/
+

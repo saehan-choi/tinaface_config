@@ -44,9 +44,39 @@ class Registry:
         Returns:
             class: The corresponding class.
         """
+        # engine
+        # detector
+        # backbone
+        # neck
+        # neck
+        # activation
+        # activation
+        # head
+        # activation
+        # activation
+        # activation
+        # activation
+        # activation
+        # activation
+        # activation
+        # activation
+        # meshgrid
+        # base_anchor
+        # converter
+        # bbox_coder
+        # pipeline
+        # pipeline
+        # pipeline
+        # pipeline
+        # pipeline
+        # pipeline
+        # pipeline
+        # pipeline
+
         if module_name not in self._module_dict:
             raise KeyError(f'{module_name} is not in registry')
         dd = self._module_dict[module_name]
+
         if cls_name not in dd:
             raise KeyError(f'{cls_name} is not registered in {module_name}')
 
@@ -75,7 +105,6 @@ class Registry:
 
 registry = Registry()
 
-
 def build_from_cfg(cfg, registry, module_name='module', default_args=None):
     if not isinstance(cfg, dict):
         raise TypeError(f'cfg must be a dict, but got {type(cfg)}')
@@ -91,12 +120,45 @@ def build_from_cfg(cfg, registry, module_name='module', default_args=None):
 
     args = cfg.copy()
     obj_type = args.pop('typename')
+    # obj_type:InferEngine
+    # obj_type:SingleStageDetector
+    # obj_type:ResNet
+    # obj_type:FPN
+    # obj_type:Inception
+    # obj_type:ReLU
+    # obj_type:ReLU
+    # obj_type:IoUAwareRetinaHead
+    # obj_type:ReLU
+    # obj_type:ReLU
+    # obj_type:ReLU
+    # obj_type:ReLU
+    # obj_type:ReLU
+    # obj_type:ReLU
+    # obj_type:ReLU
+    # obj_type:ReLU
+    # obj_type:BBoxAnchorMeshGrid
+    # obj_type:BBoxBaseAnchor
+    # obj_type:IoUBBoxAnchorConverter
+    # obj_type:DeltaXYWHBBoxCoder
+    # obj_type:LoadImageFromFile
+    # obj_type:MultiScaleFlipAug
+    # obj_type:Resize
+    # obj_type:RandomFlip
+    # obj_type:Normalize
+    # obj_type:Pad
+    # obj_type:ImageToTensor
+    # obj_type:Collect
     if is_str(obj_type):
         obj_cls = registry.get(obj_type, module_name)
+        # 여기서 obj_type을 재귀적으로 호출하는듯
     else:
         raise TypeError(f'type must be a str, but got {type(obj_type)}')
 
     if default_args is not None:
+
         for name, value in default_args.items():
             args.setdefault(name, value)
+        # **args가 재귀적으로 호출하는듯
+
     return obj_cls(**args)
+

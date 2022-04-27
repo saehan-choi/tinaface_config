@@ -39,13 +39,17 @@ def main():
     if args.workdir is not None:
         # update configs according to CLI args if args.work_dir is not None
         cfg.workdir = args.workdir
+
     elif cfg.get('workdir', None) is None:
         # use config filename as default work_dir if cfg.work_dir is None
         cfg.workdir = osp.join('./workdir',
                                osp.splitext(osp.basename(args.config))[0])
 
+    
+    
     seed = cfg.get('seed', None)
     deterministic = cfg.get('deterministic', False)
+
     set_random_seed(seed, deterministic)
 
     # create work_dir
@@ -58,6 +62,7 @@ def main():
 
     # print('local_rank', args.local_rank)
 
+    # configs/tinaface.py    False     <Logger vedadet (INFO)>
     trainval(cfg, distributed, logger)
 
 

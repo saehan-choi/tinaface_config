@@ -31,10 +31,18 @@ def _concat_dataset(cfg, default_args=None):
     for i in range(num_dset):
         data_cfg = copy.deepcopy(cfg)
         data_cfg['ann_file'] = ann_files[i]
+        # 아 이게 instance면 ㅎㅎ... 이면 이걸로 가겠다
         if isinstance(img_prefixes, (list, tuple)):
             data_cfg['img_prefix'] = img_prefixes[i]
         if isinstance(proposal_files, (list, tuple)):
             data_cfg['proposal_file'] = proposal_files[i]
+
+        print(f"data_cfg:{data_cfg['ann_file']}")
+        print(f"img_prefix:{data_cfg['img_prefix']}")
+        print(f"proposal_file:{data_cfg['proposal_file']}")
+        # 이거 되나 모르겠음...  지금 batch size 조절에 문제겪고있음
+
+
         datasets.append(build_dataset(data_cfg, default_args))
 
     return ConcatDataset(datasets)

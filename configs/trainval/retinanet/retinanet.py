@@ -191,7 +191,7 @@ max_epochs = 12
 
 # 6. checkpoint
 weights = dict(
-    filepath='torchvision://resnet50',
+    filepath='weights/tinaface_r50_fpn_gn_dcn.pth',
     prefix='backbone')
 # optimizer = dict(filepath='workdir/retinanet_mini/epoch_3_optim.pth')
 # meta = dict(filepath='workdir/retinanet_mini/epoch_3_meta.pth')

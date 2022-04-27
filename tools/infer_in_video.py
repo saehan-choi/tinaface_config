@@ -12,6 +12,7 @@ from vedadet.datasets.pipelines import Compose
 from vedadet.engines import build_engine
 import time
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Infer a detector')
     parser.add_argument('config', help='config file path')
@@ -19,6 +20,7 @@ def parse_args():
 
     args = parser.parse_args()
     return args
+
 
 def prepare(cfg):
     if torch.cuda.is_available():
@@ -45,31 +47,27 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
     bbox_color = color_val(bbox_color)
     text_color = color_val(text_color)
     img = imread(imgfp)
-
     bboxes = np.vstack(result)
-
-    print(bboxes)
-    f = open(f"./inference_label_data/{output_label_name}", 'w')
+    # print(bboxes)
+    # f = open(f"./inference_label_data/{output_label_name}", 'w')
     # class probability x1 y1 x2 y2
-    for i in bboxes:
-        x1 = i[0]
-        y1 = i[1]
-        x2 = i[2]
-        y2 = i[3]
-        confidence = i[4]
-        f.write(f'0 {confidence} {round(x1)} {round(y1)} {round(x2)} {round(y2)}\n')
-    f.close()
-
-    print(outfp)
+    # for i in bboxes:
+    #     x1 = i[0]
+    #     y1 = i[1]
+    #     x2 = i[2]
+    #     y2 = i[3]
+    #     confidence = i[4]
+    #     f.write(f'0 {confidence} {round(x1)} {round(y1)} {round(x2)} {round(y2)}\n')
+    # video test에서는 쓸필요없음
+    # f.close()
 
     labels = [
         np.full(bbox.shape[0], idx, dtype=np.int32)
         for idx, bbox in enumerate(result)
     ]
-
     # !!!!!!!!!!!bounding box!!!!!!!!!!!!
-    # 이부분 지금 필요없을거같아서 (지금 우분투 상태가 아니라서 어차피 plot 못띄움) 주석처리 할게요.
 
+    # 이부분 지금 필요없을거같아서 (지금 우분투 상태가 아니라서 어차피 plot 못띄움) 주석처리 할게요.
     labels = np.concatenate(labels)
 
     for bbox, label in zip(bboxes, labels):
@@ -86,28 +84,19 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
     imwrite(img, outfp)
 
 
-def load_weights_2():
+def main():
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     args = parse_args()
     cfg = Config.fromfile(args.config)
     class_names = cfg.class_names
+    print(class_names)
     engine, data_pipeline, device = prepare(cfg)
-    return class_names, engine, data_pipeline, device
-
-
-def main():
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    class_names, engine, data_pipeline, device = load_weights_2()
-
-    path = f'./inference_data/'
+    path = './inference_data/'
     infer_data_location = os.listdir(path)
-
     for i in infer_data_location:
         st = time.time()    
-
         imgname = f"{path}/{i}"
-
         data = dict(img_info=dict(filename=imgname), img_prefix=None)
-
         data = data_pipeline(data)
         data = collate([data], samples_per_gpu=1)
 
@@ -118,13 +107,16 @@ def main():
             #c just get the actual data from DataContainer
             data['img_metas'] = data['img_metas'][0].data
             data['img'] = data['img'][0].data
-
+        
         result = engine.infer(data['img'], data['img_metas'])[0]
-        plot_result(result, imgname, class_names, outfp=f'./pred_data/pred_{i}', output_label_name = f'{i}.txt')
+        plot_result(result, imgname, class_names, outfp=f'./pred_data/pred_{i}.jpg', output_label_name = f'{i}.txt')
+
+
 
         ed = time.time()
         print(f'{ed-st}s passed')
 
 if __name__ == '__main__':
-    load_weights_2()
     main()
+
+

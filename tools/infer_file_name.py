@@ -12,10 +12,11 @@ from vedadet.datasets.pipelines import Compose
 from vedadet.engines import build_engine
 import time
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Infer a detector')
     parser.add_argument('config', help='config file path')
-    # parser.add_argument('imgname', help='image file name')
+    # parser.add_argument('fileName', help='image file name')
 
     args = parser.parse_args()
     return args
@@ -48,7 +49,7 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
 
     bboxes = np.vstack(result)
 
-    print(bboxes)
+    # print(bboxes)
     f = open(f"./inference_label_data/{output_label_name}", 'w')
     # class probability x1 y1 x2 y2
     for i in bboxes:
@@ -59,7 +60,6 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
         confidence = i[4]
         f.write(f'0 {confidence} {round(x1)} {round(y1)} {round(x2)} {round(y2)}\n')
     f.close()
-
     print(outfp)
 
     labels = [
@@ -69,9 +69,7 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
 
     # !!!!!!!!!!!bounding box!!!!!!!!!!!!
     # 이부분 지금 필요없을거같아서 (지금 우분투 상태가 아니라서 어차피 plot 못띄움) 주석처리 할게요.
-
     labels = np.concatenate(labels)
-
     for bbox, label in zip(bboxes, labels):
         bbox_int = bbox[:4].astype(np.int32)
         left_top = (bbox_int[0], bbox_int[1])
@@ -94,37 +92,36 @@ def load_weights_2():
     return class_names, engine, data_pipeline, device
 
 
-def main():
+def main(fileName, class_names, engine, data_pipeline, device):
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    st = time.time()    
+
+    filePath = f'./inference_data/{fileName}'
+    data = dict(img_info=dict(filename=filePath), img_prefix=None)
+
+    data = data_pipeline(data)
+    data = collate([data], samples_per_gpu=1)
+
+    if device != 'cpu':
+        # scatter to specified GPU
+        data = scatter(data, [device])[0]
+    else:
+        #c just get the actual data from DataContainer
+        data['img_metas'] = data['img_metas'][0].data
+        data['img'] = data['img'][0].data
+
+    result = engine.infer(data['img'], data['img_metas'])[0]
+    plot_result(result, filePath, class_names, outfp=f'./pred_data/pred_{fileName}', output_label_name = f'{fileName}.txt')
+
+    ed = time.time()
+    print(f'{ed-st}s passed')
+
+# 이거 original file_name만 읽는거
+if __name__ == '__main__':
     class_names, engine, data_pipeline, device = load_weights_2()
 
-    path = f'./inference_data/'
-    infer_data_location = os.listdir(path)
-
-    for i in infer_data_location:
-        st = time.time()    
-
-        imgname = f"{path}/{i}"
-
-        data = dict(img_info=dict(filename=imgname), img_prefix=None)
-
-        data = data_pipeline(data)
-        data = collate([data], samples_per_gpu=1)
-
-        if device != 'cpu':
-            # scatter to specified GPU
-            data = scatter(data, [device])[0]
-        else:
-            #c just get the actual data from DataContainer
-            data['img_metas'] = data['img_metas'][0].data
-            data['img'] = data['img'][0].data
-
-        result = engine.infer(data['img'], data['img_metas'])[0]
-        plot_result(result, imgname, class_names, outfp=f'./pred_data/pred_{i}', output_label_name = f'{i}.txt')
-
-        ed = time.time()
-        print(f'{ed-st}s passed')
-
-if __name__ == '__main__':
-    load_weights_2()
-    main()
+    while True:
+        # 혹시모르는 error방지를 위해 try except도 괜찮을거 같기도ㅎ
+        fileName = input()
+        if fileName:
+            main(fileName, class_names, engine, data_pipeline, device)

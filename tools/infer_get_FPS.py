@@ -10,7 +10,10 @@ from vedacore.misc import Config, color_val, load_weights
 from vedacore.parallel import collate, scatter
 from vedadet.datasets.pipelines import Compose
 from vedadet.engines import build_engine
+
+import os
 import time
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Infer a detector')
@@ -19,6 +22,7 @@ def parse_args():
 
     args = parser.parse_args()
     return args
+
 
 def prepare(cfg):
     if torch.cuda.is_available():
@@ -35,7 +39,8 @@ def prepare(cfg):
     return engine, data_pipeline, device
 
 
-def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=False):
+def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=False, start=1):
+    
     output_label_name = output_label_name
     font_scale = 0.5
     bbox_color = 'green'
@@ -45,8 +50,12 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
     bbox_color = color_val(bbox_color)
     text_color = color_val(text_color)
     img = imread(imgfp)
-
+    width, height = img.shape[:2]
+    
     bboxes = np.vstack(result)
+
+    blue = (255, 0, 0)
+    font =  cv2.FONT_HERSHEY_PLAIN
 
     print(bboxes)
     f = open(f"./inference_label_data/{output_label_name}", 'w')
@@ -60,7 +69,8 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
         f.write(f'0 {confidence} {round(x1)} {round(y1)} {round(x2)} {round(y2)}\n')
     f.close()
 
-    print(outfp)
+
+    
 
     labels = [
         np.full(bbox.shape[0], idx, dtype=np.int32)
@@ -69,7 +79,7 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
 
     # !!!!!!!!!!!bounding box!!!!!!!!!!!!
     # 이부분 지금 필요없을거같아서 (지금 우분투 상태가 아니라서 어차피 plot 못띄움) 주석처리 할게요.
-
+    
     labels = np.concatenate(labels)
 
     for bbox, label in zip(bboxes, labels):
@@ -83,48 +93,51 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
             label_text += f'|{bbox[-1]:.02f}'
         cv2.putText(img, label_text, (bbox_int[0], bbox_int[1] - 2),
                     cv2.FONT_HERSHEY_COMPLEX, font_scale, text_color)
+    ed = time.time()
+    print(f'{ed-start}s passed')
+    FPS = 1 / (ed-start)
+
+    cv2.putText(img, f'FPS : {round(FPS, 2)}', (width-260, 40), font, 3, blue, 3, cv2.LINE_AA)
+
     imwrite(img, outfp)
-
-
-def load_weights_2():
-    args = parse_args()
-    cfg = Config.fromfile(args.config)
-    class_names = cfg.class_names
-    engine, data_pipeline, device = prepare(cfg)
-    return class_names, engine, data_pipeline, device
+    
 
 
 def main():
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    class_names, engine, data_pipeline, device = load_weights_2()
+    args = parse_args()
 
-    path = f'./inference_data/'
-    infer_data_location = os.listdir(path)
+    # path = './inference_data/inferdata.jpg'
+    cfg = Config.fromfile(args.config)
 
-    for i in infer_data_location:
-        st = time.time()    
+    class_names = cfg.class_names
+    # 이거 잘몰ㄹj
+    engine, data_pipeline, device = prepare(cfg)
+    # infer_data_location = os.listdir(path)
 
-        imgname = f"{path}/{i}"
+    st = time.time()
 
-        data = dict(img_info=dict(filename=imgname), img_prefix=None)
+    imgname = "./inference_data/inferdata.jpg"
 
-        data = data_pipeline(data)
-        data = collate([data], samples_per_gpu=1)
+    data = dict(img_info=dict(filename=imgname), img_prefix=None)
 
-        if device != 'cpu':
-            # scatter to specified GPU
-            data = scatter(data, [device])[0]
-        else:
-            #c just get the actual data from DataContainer
-            data['img_metas'] = data['img_metas'][0].data
-            data['img'] = data['img'][0].data
+    data = data_pipeline(data)
 
-        result = engine.infer(data['img'], data['img_metas'])[0]
-        plot_result(result, imgname, class_names, outfp=f'./pred_data/pred_{i}', output_label_name = f'{i}.txt')
+    data = collate([data], samples_per_gpu=1)
 
-        ed = time.time()
-        print(f'{ed-st}s passed')
+    if device != 'cpu':
+        # scatter to specified GPU
+        data = scatter(data, [device])[0]
+    else:
+        #c just get the actual data from DataContainer
+        data['img_metas'] = data['img_metas'][0].data
+        data['img'] = data['img'][0].data
+    
+    result = engine.infer(data['img'], data['img_metas'])[0]
+
+    plot_result(result, imgname, class_names, outfp=f'./IMG_FPS_IMAGE/Tinaface FPS_pred.jpg', start = st)
+
 
 if __name__ == '__main__':
-    load_weights_2()
     main()
+
