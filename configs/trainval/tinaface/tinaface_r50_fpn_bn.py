@@ -6,8 +6,12 @@ img_norm_cfg = dict(
 size_divisor = 32
 
 data = dict(
-    samples_per_gpu=4,
-    workers_per_gpu=2,
+    samples_per_gpu=1,
+    workers_per_gpu=1,
+    # 지금 WIDER_train/이쪽 테스트중 입니다
+    # 한바퀴 돌아갑니다. 그럼 이게 데이터셋에 맞게 변경을 해야하는데 흠.. face만 아니라도 될란지?
+    # 한바퀴 돌아가는거 확인했으니 이슈발생시 처리하도록 하고..
+    # 흠 
     train=dict(
         typename=dataset_type,
         ann_file=data_root + 'WIDER_train/train.txt',
@@ -32,6 +36,7 @@ data = dict(
             dict(typename='Collect', keys=['img', 'gt_bboxes',
                                            'gt_labels', 'gt_bboxes_ignore']),
         ]),
+
     val=dict(
         typename=dataset_type,
         ann_file=data_root + 'WIDER_val/val.txt',
@@ -62,6 +67,8 @@ use_sigmoid = True
 scales_per_octave = 3
 ratios = [1.3]
 num_anchors = scales_per_octave * len(ratios)
+
+# 책임안지려면 tinaface 안돌리는게 맞고.... 책임지려면 tinaface 돌려야함
 
 model = dict(
     typename='SingleStageDetector',
@@ -190,9 +197,14 @@ modes = ['train']#, 'val']
 max_epochs = 630
 
 # 6. checkpoint
+# filepath='torchvision://resnet50',였음
+
+# filepath='./vedadet/weights/tinaface_r50_fpn_bn.pth'
 weights = dict(
     filepath='torchvision://resnet50',
+    # filepath='./vedadet/weights/epoch_1_weights.pth',
     prefix='backbone')
+
 # optimizer = dict(filepath='workdir/retinanet_mini/epoch_3_optim.pth')
 # meta = dict(filepath='workdir/retinanet_mini/epoch_3_meta.pth')
 

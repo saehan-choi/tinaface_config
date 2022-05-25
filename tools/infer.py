@@ -18,6 +18,7 @@ def parse_args():
     # parser.add_argument('imgname', help='image file name')
 
     args = parser.parse_args()
+    print(args)
     return args
 
 def prepare(cfg):
@@ -48,7 +49,7 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
 
     bboxes = np.vstack(result)
 
-    print(bboxes)
+    # print(bboxes)
     f = open(f"./inference_label_data/{output_label_name}", 'w')
     # class probability x1 y1 x2 y2
     for i in bboxes:
@@ -92,7 +93,6 @@ def load_weights_2():
     class_names = cfg.class_names
     engine, data_pipeline, device = prepare(cfg)
     return class_names, engine, data_pipeline, device
-
 
 def main():
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0"

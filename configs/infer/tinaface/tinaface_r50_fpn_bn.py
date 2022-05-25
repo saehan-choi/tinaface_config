@@ -104,6 +104,7 @@ infer_engine = dict(
 
 # 4. weights
 # weights = dict(filepath='your/weight/file/path')
+# weights = dict(filepath='weights/epoch_3_weights.pth')
 weights = dict(filepath='weights/tinaface_r50_fpn_bn.pth')
 # 5. show
 class_names = ('face', )

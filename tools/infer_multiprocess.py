@@ -14,7 +14,6 @@ from vedadet.engines import build_engine
 import time
 import concurrent.futures
 
-import threading
 from multiprocessing import Process, Queue
 
 def parse_args():
@@ -85,6 +84,7 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
                     cv2.FONT_HERSHEY_COMPLEX, font_scale, text_color)
     imwrite(img, outfp)
 
+
 def load_weights_2():
     args = parse_args()
     cfg = Config.fromfile(args.config)
@@ -113,46 +113,50 @@ def main(fileName, class_names, engine, data_pipeline, device):
     result = engine.infer(data['img'], data['img_metas'])[0]
     plot_result(result, filePath, class_names, outfp=f'./pred_data/pred_{fileName}', output_label_name = f'{fileName}.txt')
     ed = time.time()
-    print(f'{fileName} is {ed-st}s passed')
-
+    print(f'{ed-st}s passed')
 
 if __name__ == '__main__':
     class_names, engine, data_pipeline, device = load_weights_2()
     # 이렇게 시작하려면 flask에서 미리 가중치를 로드해야함.
 
     while True:
-
         # 혹시모르는 error방지를 위해 try except도 괜찮을거 같기도ㅎ
         # fileName = input()
         file_arr = []
-        
-        fileName1 = '1.jpg'
-        fileName2 = '2.jpg'
-        fileName3 = '4.jpg'
-        
+        fileName1 = 'maksssksksss203.png'
+        fileName2 = 'maksssksksss203.png'
+        fileName3 = 'maksssksksss203.png'
         # main(fileName, class_names, engine, data_pipeline, device)
         file_arr.extend([fileName1, fileName2, fileName3])
 
+        # 일케하면 스레드의 효과를 살릴수 있음
         threads = []
-        # 아 디텍팅되는시간의 반만큼이 제일 효율적이네!
-        # -> 정확한지..? ㄷㄷ;
         if len(file_arr)==3:
-            t1 = threading.Thread(target=main, args=(fileName1, class_names, engine, data_pipeline, device))
-            t2 = threading.Thread(target=main, args=(fileName2, class_names, engine, data_pipeline, device))
-            t3 = threading.Thread(target=main, args=(fileName3, class_names, engine, data_pipeline, device))
+            t1 = Process(target=main, args=(fileName1, class_names, engine, data_pipeline, device))
+            t2 = Process(target=main, args=(fileName2, class_names, engine, data_pipeline, device))
+            t3 = Process(target=main, args=(fileName3, class_names, engine, data_pipeline, device))
             t1.start()
-            # time.sleep(0.15)
-            time.sleep(0.25)
             t2.start()
-            # time.sleep(0.15)
-            time.sleep(0.25)
             t3.start()
-            # time.sleep(0.15)
-            time.sleep(0.25)
             threads.append(t1)
             threads.append(t2)
             threads.append(t3)
 
-        # for t in threads:
-        #     t.join()
+        for t in threads:
+            t.join()
+
+# def heavy_work(name):
+#     result = 0
+#     for i in range(4000000):
+#         result += i
+#     print('%s done' % name)
+
+# threads = []
+# for i in range(4):
+#     t= threading.Thread(target=heavy_work, args=(i, ))
+#     t.start()
+#     threads.append(t)
+
+# for t in threads:
+#     t.join()
 
