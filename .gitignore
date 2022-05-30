@@ -144,4 +144,4 @@ inference_label_data/
 pred_data/
 eval_tools/
 weights/
-
+faceImg/
