@@ -18,7 +18,6 @@ def parse_args():
     # parser.add_argument('imgname', help='image file name')
 
     args = parser.parse_args()
-    print(args)
     return args
 
 def prepare(cfg):
@@ -51,17 +50,23 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
 
     # print(bboxes)
     f = open(f"./inference_label_data/{output_label_name}", 'w')
-    # class probability x1 y1 x2 y2
+    # class probability y1 x1 y2 x2 순서입니다
+    # print()
+    cnt = 0
+    
+
     for i in bboxes:
-        x1 = i[0]
-        y1 = i[1]
-        x2 = i[2]
-        y2 = i[3]
+        y1 = i[0]
+        x1 = i[1]
+        y2 = i[2]
+        x2 = i[3]
         confidence = i[4]
         f.write(f'0 {confidence} {round(x1)} {round(y1)} {round(x2)} {round(y2)}\n')
+        # class probability x1 y1 x2 y2
+        copyImg = img[int(x1):int(x2), int(y1):int(y2)].copy()
+        cv2.imwrite(f'./infer_crop/{cnt}_{output_label_name[:-4]}', copyImg)
+        cnt +=1
     f.close()
-
-    print(outfp)
 
     labels = [
         np.full(bbox.shape[0], idx, dtype=np.int32)
@@ -93,6 +98,7 @@ def load_weights_2():
     class_names = cfg.class_names
     engine, data_pipeline, device = prepare(cfg)
     return class_names, engine, data_pipeline, device
+
 
 def main():
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0"

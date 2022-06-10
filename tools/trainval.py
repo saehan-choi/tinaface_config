@@ -29,23 +29,16 @@ def main():
 
     cfg = Config.fromfile(args.config)
 
-    # 실험해보니 None임
     if args.launcher == 'none':
         distributed = False
     else:
         distributed = True
         init_dist(args.launcher, **cfg.dist_params)
 
-    # print(f'cfg:{cfg}')
-    # cfg에 모든 config파일들이 존재함.
-
-    # workdir도 None
     # workdir is determined in this priority: CLI > segment in file > filename
     if args.workdir is not None:
         # update configs according to CLI args if args.work_dir is not None
         cfg.workdir = args.workdir
-
-
     elif cfg.get('workdir', None) is None:
         # use config filename as default work_dir if cfg.work_dir is None
         cfg.workdir = osp.join('./workdir',
@@ -53,7 +46,6 @@ def main():
 
     seed = cfg.get('seed', None)
     deterministic = cfg.get('deterministic', False)
-
     set_random_seed(seed, deterministic)
 
     # create work_dir
@@ -66,7 +58,6 @@ def main():
 
     # print('local_rank', args.local_rank)
 
-    # config/trainval/tinaface/tinaface_r50_fpn_bn.py,  False,     <Logger vedadet (INFO)>
     trainval(cfg, distributed, logger)
 
 

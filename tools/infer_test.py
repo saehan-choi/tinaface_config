@@ -53,20 +53,15 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
 
     bboxes = np.vstack(result)
     f = open(f"./inference_label_data/{output_label_name}", 'w')
-    cnt = 0
     # class probability y1 x1 y2 x2 순서입니다
     for i in bboxes:
-        
         y1 = i[0]
         x1 = i[1]
         y2 = i[2]
         x2 = i[3]
         confidence = i[4]
         f.write(f'0 {confidence} {round(x1)} {round(y1)} {round(x2)} {round(y2)}\n')
-        copyImg = img[int(x1):int(x2), int(y1):int(y2)].copy()
-        cv2.imwrite(f'./infer_crop/{cnt}_{output_label_name[:-4]}', copyImg)        
         # class probability x1 y1 x2 y2
-        cnt+=1
         
     f.close()
     print(outfp)
@@ -118,7 +113,7 @@ def main(fileName, class_names, engine, data_pipeline, device):
 
     result = engine.infer(data['img'], data['img_metas'])[0]
     plot_result(result, filePath, class_names, outfp=f'./pred_data/pred_{fileName}', output_label_name = f'{fileName}.txt')
-    # ed = time.time()
+    ed = time.time()
     # print(f'{fileName} is {ed-st}s passed')
     # arr.append(ed-st)
 
@@ -130,37 +125,18 @@ if __name__ == '__main__':
     # while True:
     arr = []
     for i in range(100):
-        # fileName = input()
         st = time.time()
+        # 혹시모르는 error방지를 위해 try except도 괜찮을거 같기도ㅎ
+        # fileName = input()
         file_arr = []
         fileName1 = 'maksssksksss11.png'
         fileName2 = 'maksssksksss12.png'
         fileName3 = 'maksssksksss13.png'
         
-        # main(fileName, class_names, engine, data_pipeline, device)
-        file_arr.extend([fileName1, fileName2, fileName3])
+        main(fileName1, class_names, engine, data_pipeline, device)
+        main(fileName2, class_names, engine, data_pipeline, device)
+        main(fileName3, class_names, engine, data_pipeline, device)
 
-        threads = []
-        if len(file_arr)==3:
-            t1 = threading.Thread(target=main, args=(fileName1, class_names, engine, data_pipeline, device))
-            t2 = threading.Thread(target=main, args=(fileName2, class_names, engine, data_pipeline, device))
-            t3 = threading.Thread(target=main, args=(fileName3, class_names, engine, data_pipeline, device))
-            t1.start()
-            # time.sleep(0.3)
-            time.sleep(0.15)
-            t2.start()
-            # time.sleep(0.3)
-            time.sleep(0.15)
-            t3.start()
-            # time.sleep(0.3)
-            time.sleep(0.15)
-            threads.append(t1)
-            threads.append(t2)
-            threads.append(t3)
-
-        for t in threads:
-            t.join()
-        
         ed = time.time()
         arr.append(ed-st)
         print(arr)

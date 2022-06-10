@@ -4,6 +4,8 @@ import cv2
 import numpy as np
 import torch
 import os
+import socket
+from concurrent import futures
 
 from vedacore.image import imread, imwrite
 from vedacore.misc import Config, color_val, load_weights
@@ -12,10 +14,13 @@ from vedadet.datasets.pipelines import Compose
 from vedadet.engines import build_engine
 import time
 
+import threading
+
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Infer a detector')
-    parser.add_argument('config', help='config file path')
+    # parser.add_argument('config', default='configs/infer/tinaface/tinaface_r50_fpn_bn.py' ,help='config file path')
     # parser.add_argument('fileName', help='image file name')
 
     args = parser.parse_args()
@@ -50,7 +55,7 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
     bboxes = np.vstack(result)
 
     # print(bboxes)
-    f = open(f"./inference_label_data/{output_label_name}", 'w')
+    f = open(f"/home/di/flask/output/tina/{now}/{output_label_name}", 'w')
     # class probability x1 y1 x2 y2
     for i in bboxes:
         x1 = i[0]
@@ -69,7 +74,9 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
 
     # !!!!!!!!!!!bounding box!!!!!!!!!!!!
     # 이부분 지금 필요없을거같아서 (지금 우분투 상태가 아니라서 어차피 plot 못띄움) 주석처리 할게요.
+
     labels = np.concatenate(labels)
+
     for bbox, label in zip(bboxes, labels):
         bbox_int = bbox[:4].astype(np.int32)
         left_top = (bbox_int[0], bbox_int[1])
@@ -86,42 +93,75 @@ def plot_result(result, imgfp, class_names, outfp='out.jpg', output_label_name=F
 
 def load_weights_2():
     args = parse_args()
-    cfg = Config.fromfile(args.config)
+    cfg = Config.fromfile('configs/infer/tinaface/tinaface_r50_fpn_bn.py')
+    # cfg = Config.fromfile(args.cofig)
     class_names = cfg.class_names
     engine, data_pipeline, device = prepare(cfg)
     return class_names, engine, data_pipeline, device
 
 
-def main(fileName, class_names, engine, data_pipeline, device):
+def main(now, class_names, engine, data_pipeline, device):
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     st = time.time()    
 
-    filePath = f'./inference_data/{fileName}'
-    data = dict(img_info=dict(filename=filePath), img_prefix=None)
+    path = f'/home/di/flask/input/tina/{now}'
+    infer_data_location = os.listdir(path)
+    for i in infer_data_location:
+        st = time.time()
 
-    data = data_pipeline(data)
-    data = collate([data], samples_per_gpu=1)
+        imgname = f"{path}/{i}"
+        data = dict(img_info=dict(filename=imgname), img_prefix=None)
 
-    if device != 'cpu':
-        # scatter to specified GPU
-        data = scatter(data, [device])[0]
-    else:
-        #c just get the actual data from DataContainer
-        data['img_metas'] = data['img_metas'][0].data
-        data['img'] = data['img'][0].data
+        data = data_pipeline(data)
+        data = collate([data], samples_per_gpu=1)
 
-    result = engine.infer(data['img'], data['img_metas'])[0]
-    plot_result(result, filePath, class_names, outfp=f'./pred_data/pred_{fileName}', output_label_name = f'{fileName}.txt')
+        if device != 'cpu':
+            # scatter to specified GPU
+            data = scatter(data, [device])[0]
+        else:
+            #c just get the actual data from DataContainer
+            data['img_metas'] = data['img_metas'][0].data
+            data['img'] = data['img'][0].data
 
-    ed = time.time()
-    print(f'{ed-st}s passed')
+        result = engine.infer(data['img'], data['img_metas'])[0]
+        plot_result(result, imgname, class_names, outfp=f'/home/di/flask/output/tina/{now}/{i}', output_label_name = f'{i}.txt')
+
+        ed = time.time()
+        print(f'{ed-st}s passed')
 
 # 이거 original file_name만 읽는거
 if __name__ == '__main__':
     class_names, engine, data_pipeline, device = load_weights_2()
+    IP = '192.168.0.170'
+    PORT = 28283
+    SIZE = 1024
+    ADDR = (IP, PORT)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+        server_socket.bind(ADDR)  # 주소 바인딩
+        server_socket.listen()
+        while True:
+            client_socket, client_addr = server_socket.accept()  # 수신대기, 접속한 클라이언트 정보 (소켓, 주소) 반환
+            now = client_socket.recv(SIZE)  # 클라이언트가 보낸 메시지 반환
+            now = now.decode()
+            client_socket.sendall("done".encode())  # 클라이언트에게 응답
+            client_socket.close()  # 클라이언트 소켓 종료
+            print(now)
+            with futures.ThreadPoolExecutor(max_workers=8) as executor:
+                executor.submit(main, (now, class_names, engine, data_pipeline, device))
 
-    while True:
-        # 혹시모르는 error방지를 위해 try except도 괜찮을거 같기도ㅎ
-        fileName = input()
-        if fileName:
-            main(fileName, class_names, engine, data_pipeline, device)
+def heavy_work(name):
+    result = 0
+    for i in range(4000000):
+        result += i
+    print('%s done' % name)
+
+threads = []
+for i in range(4):
+    t= threading.Thread(target=heavy_work, args=(i, ))
+    t.start()
+    threads.append(t)
+
+for t in threads:
+    t.join()
+
+
